@@ -73,7 +73,7 @@ class MongoDBUtil(object):
             log.msg("there isn't any article in mongodb", level=log.DEBUG)
             return None
         max = SON.to_dict(maxVoteList[0])['vote']
-        avg = math.floor(cls.get_avg_vote())
+        avg = math.floor(cls.get_vote_avg())
         articlesCursor = cls.blogItemCollection.find({"vote": {'$lte': max, '$gte': avg}}, {"id": 1, "vote": 1, '_id': 0})\
             .sort('vote', -1).limit(3)
         articlesList = list(articlesCursor)
