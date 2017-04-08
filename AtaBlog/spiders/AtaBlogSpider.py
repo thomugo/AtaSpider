@@ -55,11 +55,22 @@ class AtaBlogSpider(scrapy.Spider):
 
     # 提取同类文章url
     def parse_similar_articles(self, response):
+        print "in parse_similar_articles"
         context = response.xpath('//table').extract()[0].decode('utf-8')
         urls = response.xpath('//a[contains(@href, "/articles")]/@href').extract()
         for url in urls:
+            self.log("similar url: " + response.urljoin(url))
             self.url_pools.put((3, response.urljoin(url)))
-        return response.meta['item']
+        while self.url_pools.qsize() > 0:
+            url = self.url_pools.get()[1]
+            uri = url.split('/')[-1]
+            if url not in self.used_urls:
+                if (not MongoDBUtil.isUrlScrawled(uri)):
+                    print "crawl next url: " + url
+                    yield scrapy.Request(url, cookies=self.cookies, headers=self.headers)
+                    break
+        yield response.meta['item']
+
 
     # 提取文章上下页url
     def getUrls(self, item, response):
@@ -69,7 +80,7 @@ class AtaBlogSpider(scrapy.Spider):
         if len(previousArticle) > 0:
             previousArticleUrl = response.urljoin(previousArticle[0])
             self.url_pools.put((1, previousArticleUrl))
-            self.log("Get a previousUrl: %s from [%s]" % (previousArticleUrl,selfUrl))
+            self.log("Get a previousUrl: %s from [%s]" % (previousArticleUrl, selfUrl))
         if len(nextArticle) > 0:
             nextArticleUrl = response.urljoin(nextArticle[0])
             self.url_pools.put((2, nextArticleUrl))
@@ -94,12 +105,22 @@ class AtaBlogSpider(scrapy.Spider):
             yield self.getUrls(item, response)
         else:
             self.log("article: [%s] not exist!!!" % response.url)
-        if self.url_pools.qsize() > 0:
+            while self.url_pools.qsize() > 0:
+                url = self.url_pools.get()[1]
+                uri = url.split('/')[-1]
+                if url not in self.used_urls:
+                    if(not MongoDBUtil.isUrlScrawled(uri)):
+                        print "crawl next url: " + url
+                        yield scrapy.Request(url, cookies=self.cookies, headers=self.headers)
+                        break
+        while self.url_pools.qsize() > 0:
             url = self.url_pools.get()[1]
+            uri = url.split('/')[-1]
             if url not in self.used_urls:
-                if(not MongoDBUtil.isUrlScrawled(url)):
+                if (not MongoDBUtil.isUrlScrawled(uri)):
                     print "crawl next url: " + url
                     yield scrapy.Request(url, cookies=self.cookies, headers=self.headers)
+                    break
 
     # 解析文章内容
     def parse_page_contents(self, response):
@@ -145,12 +166,12 @@ class AtaBlogSpider(scrapy.Spider):
 
     # 将文章持久化到本地和数据库中
     def persistenceBlog(self, authorItem, blogItem):
-        url = blogItem['id']
+        uri = blogItem['id']
         if not os.path.exists(blogItem['dir']):
             os.makedirs(blogItem['dir'])
         fileName = blogItem['dir'] + blogItem['title'] + ".md"
         alreadyWritten = os.path.exists(fileName)
-        alreadyScrawled = MongoDBUtil.isUrlScrawled(url)
+        alreadyScrawled = MongoDBUtil.isUrlScrawled(uri)
         if not alreadyWritten:
             # 将爬取到的文章保存到本地文件系统
             with codecs.open(fileName, 'wb', encoding="utf-8") as md:

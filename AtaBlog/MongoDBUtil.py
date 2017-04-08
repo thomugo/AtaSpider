@@ -86,7 +86,7 @@ class MongoDBUtil(object):
         avgCursor = cls.blogItemCollection.aggregate([{'$group': {'_id': '$source', 'avgVote': {'$avg': "$vote"}}}])
         avgList = list(avgCursor)
         avg = SON.to_dict(avgList[0])['avgVote']
-        print avg
+        return avg
 
     @classmethod
     @deprecated
@@ -111,14 +111,14 @@ class MongoDBUtil(object):
         return avg['value']['avgVote']
 
     @classmethod
-    def isUrlScrawled(cls, url):
+    def isUrlScrawled(cls, uri):
         """check if the url is saved in mongodb"""
-        article = cls.blogItemCollection.find_one({"id": url}, {"id": 1, "_id": 0})
+        article = cls.blogItemCollection.find_one({"id": uri}, {"id": 1, "_id": 0})
         if article is None:
             # 该url尚未被爬取
-            log.msg("the article [%s] havn't been scrawled: " % url, level=log.DEBUG)
+            log.msg("the article [%s] havn't been scrawled: " % uri, level=log.DEBUG)
             return False
         else:
             # 该url已经被爬取过
-            log.msg("the article [%s] was already scrawled: " % url, level=log.DEBUG)
+            log.msg("the article [%s] was already scrawled: " % uri, level=log.DEBUG)
             return True
