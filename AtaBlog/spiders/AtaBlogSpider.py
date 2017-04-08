@@ -145,7 +145,7 @@ class AtaBlogSpider(scrapy.Spider):
 
     # 将文章持久化到本地和数据库中
     def persistenceBlog(self, authorItem, blogItem):
-        url = "https://www.atatech.org/articles/" + blogItem['id']
+        url = blogItem['id']
         if not os.path.exists(blogItem['dir']):
             os.makedirs(blogItem['dir'])
         fileName = blogItem['dir'] + blogItem['title'] + ".md"

@@ -84,3 +84,4 @@ def testGetBlog():
 #MongoDBUtil.get_vote_avg()
 #testPriorityQueue()
 #testGetBlog()
+#print MongoDBUtil.isUrlScrawled('72373')
